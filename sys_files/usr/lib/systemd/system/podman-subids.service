@@ -1,0 +1,15 @@
+[Unit]
+Description=Copy Podman subids to /etc
+After=local-fs.target
+Before=systemd-user-sessions.service
+ConditionPathExists=/usr/lib/podman-subids/subuid
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/cp -f /usr/lib/podman-subids/subuid /etc/subuid
+ExecStart=/usr/bin/cp -f /usr/lib/podman-subids/subgid /etc/subgid
+ExecStartPost=-/usr/sbin/restorecon /etc/subuid /etc/subgid
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=Disable d3cold on the ssd to fix sleep
+DefaultDependencies=no
+Before=sleep.target
+
+[Service]
+Type=oneshot
+ExecCondition=/bin/bash -c 'grep -qi "Apple" /sys/class/dmi/id/sys_vendor'
+ExecStart=/usr/bin/sh -c 'echo 0 > /sys/bus/pci/devices/0000:01:00.0/d3cold_allowed'
+
+[Install]
+WantedBy=sysinit.target
