@@ -1,0 +1,65 @@
+name: Build and Deploy Stateless OS
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths: [ "Containerfile" ]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push-os:
+    runs-on: ubuntu-24.04 
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate Tags
+        id: tags
+        run: |
+          echo "lowercase_repo=${GITHUB_REPOSITORY,,}" >> $GITHUB_OUTPUT
+          echo "date=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+          echo "sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Log in to GHCR
+        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # v1.7
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build OS Image
+        id: build-image
+        uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2.13
+        with:
+          image: ${{ steps.tags.outputs.lowercase_repo }}
+          tags: latest ${{ steps.tags.outputs.date }} ${{ steps.tags.outputs.sha }}
+          containerfiles: |
+            ./Containerfile
+          oci: true
+
+      - name: Push to GHCR
+        uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2.8
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: ${{ env.REGISTRY }}       
