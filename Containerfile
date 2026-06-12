@@ -7,5 +7,5 @@ COPY sys_files /
 # run the build scripts
 RUN /build_files/packages.sh && \
     /build_files/initramfs.sh && \
-    /build_files/post-install.sh \
+    /build_files/post-install.sh && \
     rm -rf /build_files
